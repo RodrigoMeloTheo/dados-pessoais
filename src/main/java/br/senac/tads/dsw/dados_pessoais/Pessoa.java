@@ -5,8 +5,10 @@ import  java.util.List;
 
 import br.senac.tads.dsw.dados_pessoais.validacao.SenhasIguais;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
+
 
 
 @SenhasIguais 
@@ -30,7 +32,7 @@ public class Pessoa {
     @Size (max = 20)
     private String telefone;
     
-    @NotBlank 
+    @NotNull 
     @PastOrPresent 
     private LocalDate dataNascimento;
 
