@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -19,7 +20,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-
 
 import jakarta.validation.Valid;
 
@@ -50,36 +50,43 @@ public class PessoaController {
     @PostMapping("/sem-validacao")
     public ResponseEntity<?> incluirNovo(@RequestBody PessoaDto pessoa) {
         pessoaService.incluirNovaPessoa(pessoa);
-        URI location = ServletUriComponentsBuilder.fromCurrentContextPath().path("/pessas/{username}").buildAndExpand(pessoa.getUsername()).toUri();
+        URI location = ServletUriComponentsBuilder.fromCurrentContextPath().path("/pessas/{username}")
+                .buildAndExpand(pessoa.getUsername()).toUri();
         return ResponseEntity.created(location).build();
     }
 
     @PostMapping
-    public ResponseEntity<?> incluirNovoComValidacao(@RequestBody @Valid PessoaDto pessoa){
+    public ResponseEntity<?> incluirNovoComValidacao(@RequestBody @Valid PessoaDto pessoa) {
         pessoaService.incluirNovaPessoa(pessoa);
-        URI location = ServletUriComponentsBuilder.fromCurrentContextPath().path("/pessoas/{username}").buildAndExpand(pessoa.getUsername()).toUri();
+        URI location = ServletUriComponentsBuilder.fromCurrentContextPath().path("/pessoas/{username}")
+                .buildAndExpand(pessoa.getUsername()).toUri();
         return ResponseEntity.created(location).build();
     }
 
     @PutMapping("/{username}")
-public ResponseEntity<?> atualizar(@PathVariable("username") String username,
-        @RequestBody @Valid PessoaAlteracaoDto pessoa) {
-    PessoaDto pessoaAlterada = pessoaService.alterarPessoa(username, pessoa);
-    return ResponseEntity.ok().body(pessoaAlterada);
-}
+    public ResponseEntity<?> atualizar(@PathVariable("username") String username,
+            @RequestBody @Valid PessoaAlteracaoDto pessoa) {
+        PessoaDto pessoaAlterada = pessoaService.alterarPessoa(username, pessoa);
+        return ResponseEntity.ok().body(pessoaAlterada);
+    }
 
-@DeleteMapping("/{username}")
-public ResponseEntity<?> remover(@PathVariable("username") String username) {
-    pessoaService.removerPessoa(username);
-    return ResponseEntity.noContent().build(); // HTTP 204
-}
+    @DeleteMapping("/{username}")
+    public ResponseEntity<?> remover(@PathVariable("username") String username) {
+        pessoaService.removerPessoa(username);
+        return ResponseEntity.noContent().build(); // HTTP 204
+    }
 
-@ExceptionHandler(NaoEncontradoException.class)
-public ResponseEntity<ProblemDetail> tratarExcecao(NaoEncontradoException ex) {
-    // ProblemDetail — padrão RFC 7807 para representar erros HTTP
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-        HttpStatusCode.valueOf(404), ex.getMessage());
-    return ResponseEntity.of(pd).build();
-}
+    @ExceptionHandler(NaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarExcecao(NaoEncontradoException ex) {
+        // ProblemDetail — padrão RFC 7807 para representar erros HTTP
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+                HttpStatusCode.valueOf(404), ex.getMessage());
+        return ResponseEntity.of(pd).build();
+    }
+
+    @GetMapping("/busca")
+    public ResponseEntity<List<PessoaDto>> buscarPessoas(@RequestParam("q") String termo) {
+        return ResponseEntity.ok(pessoaService.buscarPessoas(termo));
+    }
 
 }
