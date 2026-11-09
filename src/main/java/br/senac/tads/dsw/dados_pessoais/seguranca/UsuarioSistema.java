@@ -1,19 +1,20 @@
 package br.senac.tads.dsw.dados_pessoais.seguranca;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-// Representa um usuário no contexto do Spring Security.
-// UserDetails é a interface padrão que o framework usa para carregar e inspecionar usuários.
-// Ao implementá-la, esta classe "fala a língua" do Spring Security.
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class UsuarioSistema implements UserDetails {
 
     private final String username;
-    private final String password;                          // Senha já codificada pelo PasswordEncoder
-    private final List<GrantedAuthority> authorities;       // Permissões do usuário (ex: ROLE_ADMIN)
+    private final String password;
+    private final List<GrantedAuthority> authorities;
 
     public UsuarioSistema(String username, String password, List<GrantedAuthority> authorities) {
         this.username = username;
@@ -22,21 +23,56 @@ public class UsuarioSistema implements UserDetails {
     }
 
     @Override
-    public String getUsername() { return username; }
+    public String getUsername() {
+        return username;
+    }
+
+    // Renomeia "password" para "senhaCodificada" no JSON
+    @Override
+    @JsonProperty("senhaCodificada")
+    public String getPassword() {
+        return password;
+    }
+
+    // Suprime o campo original "authorities" (que sairia como [{"authority": "..."}])
+    @Override
+    @JsonIgnore
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return authorities;
+    }
+
+    // Getter: lista de Strings, exposta como "roles"
+    @JsonProperty("roles")
+    public List<String> getRoles() {
+        List<String> roles = new ArrayList<>();
+        for (GrantedAuthority a : authorities) {
+            roles.add(a.getAuthority());
+        }
+        return roles;
+    }
+
+    // Os quatro campos de estado da conta não aparecem no JSON
+    @Override
+    @JsonIgnore
+    public boolean isAccountNonExpired() {
+        return true;
+    }
 
     @Override
-    public String getPassword() { return password; }
+    @JsonIgnore
+    public boolean isAccountNonLocked() {
+        return true;
+    }
 
-    // getAuthorities() retorna a lista de permissões (roles) do usuário.
-    // GrantedAuthority é uma interface; SimpleGrantedAuthority é a implementação padrão.
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() { return authorities; }
+    @JsonIgnore
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
 
-    // Os quatro métodos abaixo controlam o estado da conta.
-    // Retornam true por simplicidade — em produção você implementaria lógica de bloqueio,
-    // expiração de senha, etc., consultando um banco de dados.
-    @Override public boolean isAccountNonExpired()     { return true; }
-    @Override public boolean isAccountNonLocked()      { return true; }
-    @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled()               { return true; }
+    @Override
+    @JsonIgnore
+    public boolean isEnabled() {
+        return true;
+    }
 }

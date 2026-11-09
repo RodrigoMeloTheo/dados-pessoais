@@ -9,11 +9,16 @@ import java.util.stream.Collectors;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import br.senac.tads.dsw.dados_pessoais.entidade.ConhecimentoEntity;
 import br.senac.tads.dsw.dados_pessoais.entidade.PessoaEntity;
 import br.senac.tads.dsw.dados_pessoais.repositorio.ConhecimentoRepository;
 import br.senac.tads.dsw.dados_pessoais.repositorio.PessoaRepository;
+import br.senac.tads.dsw.dados_pessoais.entidade.RoleEntity;
+import br.senac.tads.dsw.dados_pessoais.entidade.UsuarioSistemaEntity;
+import br.senac.tads.dsw.dados_pessoais.repositorio.RoleRepository;
+import br.senac.tads.dsw.dados_pessoais.repositorio.UsuarioSistemaRepository;
 import jakarta.transaction.Transactional;
 
 @Component
@@ -21,11 +26,20 @@ public class DataInitializer implements CommandLineRunner {
 
     private final PessoaRepository pessoaRepository;
     private final ConhecimentoRepository conhecimentoRepository;
+    private final UsuarioSistemaRepository usuarioRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(PessoaRepository pessoaRepository,
-            ConhecimentoRepository conhecimentoRepository) {
+            ConhecimentoRepository conhecimentoRepository,
+            UsuarioSistemaRepository usuarioRepository,
+            RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder) {
         this.pessoaRepository = pessoaRepository;
         this.conhecimentoRepository = conhecimentoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -45,8 +59,7 @@ public class DataInitializer implements CommandLineRunner {
             conhecimentoRepository.saveAll(mapConhecimentos.values());
         } else {
             mapConhecimentos = conhecimentoRepository.findAll().stream()
-                    .collect(Collectors.toMap(ConhecimentoEntity::getNome,
-                            Function.identity()));
+                    .collect(Collectors.toMap(ConhecimentoEntity::getNome, Function.identity()));
         }
 
         // 2. Pré-popula as pessoas (somente se a tabela estiver vazia)
@@ -87,6 +100,37 @@ public class DataInitializer implements CommandLineRunner {
             p3.getConhecimentos().add(mapConhecimentos.get("React"));
             p3.getConhecimentos().add(mapConhecimentos.get("SQL"));
             pessoaRepository.save(p3);
+        }
+
+        if (usuarioRepository.count() == 0) {
+            RoleEntity rAdmin = new RoleEntity();
+            rAdmin.setNome("ROLE_ADMIN");
+            RoleEntity rGerente = new RoleEntity();
+            rGerente.setNome("ROLE_GERENTE");
+            RoleEntity rUser = new RoleEntity();
+            rUser.setNome("ROLE_USER");
+            roleRepository.saveAll(List.of(rAdmin, rGerente, rUser));
+
+            UsuarioSistemaEntity admin = new UsuarioSistemaEntity();
+            admin.setUsername("admin");
+            admin.setSenha(passwordEncoder.encode("Abcd%12345"));
+            admin.getRoles().add(rAdmin);
+            admin.getRoles().add(rGerente);
+            admin.getRoles().add(rUser);
+            usuarioRepository.save(admin);
+
+            UsuarioSistemaEntity user1 = new UsuarioSistemaEntity();
+            user1.setUsername("user1");
+            user1.setSenha(passwordEncoder.encode("Abcd%12345"));
+            user1.getRoles().add(rGerente);
+            user1.getRoles().add(rUser);
+            usuarioRepository.save(user1);
+
+            UsuarioSistemaEntity user2 = new UsuarioSistemaEntity();
+            user2.setUsername("user2");
+            user2.setSenha(passwordEncoder.encode("Abcd%12345"));
+            user2.getRoles().add(rUser);
+            usuarioRepository.save(user2);
         }
     }
 }

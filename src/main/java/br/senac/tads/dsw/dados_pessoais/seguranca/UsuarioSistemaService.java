@@ -1,63 +1,43 @@
 package br.senac.tads.dsw.dados_pessoais.seguranca;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-// Implementa UserDetailsService — interface que o Spring Security usa para carregar um usuário
-// pelo username durante o processo de autenticação.
-// O método loadUserByUsername() é chamado automaticamente pelo AuthenticationManager.
+import br.senac.tads.dsw.dados_pessoais.entidade.RoleEntity;
+import br.senac.tads.dsw.dados_pessoais.entidade.UsuarioSistemaEntity;
+import br.senac.tads.dsw.dados_pessoais.repositorio.UsuarioSistemaRepository;
+
 @Service
 public class UsuarioSistemaService implements UserDetailsService {
 
-    private final Map<String, UserDetails> usuarios;
+    private final UsuarioSistemaRepository usuarioRepository;
 
-    // O PasswordEncoder é injetado pelo Spring para codificar as senhas na inicialização.
-    // Neste momento usamos NoOpPasswordEncoder (texto puro). Será trocado por BCrypt na Etapa 7.
-    public UsuarioSistemaService(PasswordEncoder passwordEncoder) {
-        this.usuarios = new HashMap<>();
-
-        // admin — acesso total: ROLE_ADMIN, ROLE_GERENTE e ROLE_USER
-        this.usuarios.put("admin", new UsuarioSistema("admin", passwordEncoder.encode("Abcd%12345"),
-            List.of(
-                new SimpleGrantedAuthority("ROLE_ADMIN"),
-                new SimpleGrantedAuthority("ROLE_GERENTE"),
-                new SimpleGrantedAuthority("ROLE_USER")
-            )
-        ));
-
-        // user1 — acesso intermediário: ROLE_GERENTE e ROLE_USER
-        this.usuarios.put("user1", new UsuarioSistema("user1", passwordEncoder.encode("Abcd%12345"),
-            List.of(
-                new SimpleGrantedAuthority("ROLE_GERENTE"),
-                new SimpleGrantedAuthority("ROLE_USER")
-            )
-        ));
-
-        // user2 — acesso básico: somente ROLE_USER
-        this.usuarios.put("user2", new UsuarioSistema("user2", passwordEncoder.encode("Abcd%12345"),
-            List.of(
-                new SimpleGrantedAuthority("ROLE_USER")
-            )
-        ));
+    public UsuarioSistemaService(UsuarioSistemaRepository usuarioRepository) {
+        this.usuarioRepository = usuarioRepository;
     }
 
-    // Chamado pelo Spring Security quando precisa verificar as credenciais de um usuário.
-    // Em um sistema real, este método consultaria o banco de dados.
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserDetails usuario = usuarios.get(username);
-        if (usuario == null) {
+        Optional<UsuarioSistemaEntity> optEntity = usuarioRepository.findByUsername(username);
+        if (optEntity.isEmpty()) {
             throw new UsernameNotFoundException("Usuário não encontrado: " + username);
         }
-        return usuario;
+        UsuarioSistemaEntity entity = optEntity.get();
+
+        // Converte cada RoleEntity em SimpleGrantedAuthority
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        for (RoleEntity role : entity.getRoles()) {
+            authorities.add(new SimpleGrantedAuthority(role.getNome()));
+        }
+
+        return new UsuarioSistema(entity.getUsername(), entity.getSenha(), authorities);
     }
 }
